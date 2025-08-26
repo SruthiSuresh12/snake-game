@@ -7,7 +7,6 @@ const finalScoreDisplay = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restartBtn');
 
 let gridSize;
-const imageSize = 1.2; // 20% bigger than the grid square
 let snake = [{ x: 10, y: 10 }];
 let food = {};
 let score = 0;
@@ -80,9 +79,7 @@ function generateFood() {
 }
 
 function drawFood() {
-    const size = gridSize * imageSize;
-    const offset = (size - gridSize) / 2;
-    ctx.drawImage(foodImg, food.x - offset, food.y - offset, size, size);
+    ctx.drawImage(foodImg, food.x, food.y, gridSize, gridSize);
 }
 
 function drawSnake() {
@@ -92,8 +89,6 @@ function drawSnake() {
     snake.forEach((segment, index) => {
         let currentImage;
         let angle = 0;
-        const size = gridSize * imageSize;
-        const offset = (size - gridSize) / 2;
 
         // Head
         if (index === 0) {
@@ -112,9 +107,9 @@ function drawSnake() {
             if (segment.y > prevSegment.y) angle = -Math.PI / 2;
             if (segment.y < prevSegment.y) angle = Math.PI / 2;
         }
-        // Body (full size, neon green square)
+        // Body (custom styling)
         else {
-            ctx.fillStyle = '#39FF14'; // Neon Green
+            ctx.fillStyle = '#68c431'; // Light green to match head
             ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
             return;
         }
@@ -123,7 +118,7 @@ function drawSnake() {
         ctx.save();
         ctx.translate(segment.x + gridSize / 2, segment.y + gridSize / 2);
         ctx.rotate(angle);
-        ctx.drawImage(currentImage, -size / 2, -size / 2, size, size);
+        ctx.drawImage(currentImage, -gridSize / 2, -gridSize / 2, gridSize, gridSize);
         ctx.restore();
     });
 }
@@ -153,8 +148,11 @@ function update() {
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
     snake.unshift(head);
     
-    // Precise collision check
-    if (head.x === food.x && head.y === food.y) {
+    const distanceX = Math.abs(head.x - food.x);
+    const distanceY = Math.abs(head.y - food.y);
+    const minDistance = gridSize;
+
+    if (distanceX < minDistance && distanceY < minDistance) {
         score++;
         scoreDisplay.textContent = 'Score: ' + score;
         generateFood();
