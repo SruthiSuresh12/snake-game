@@ -16,6 +16,31 @@ let dy = 0;
 let changingDirection = false;
 let gameInterval;
 
+// Image assets
+const headImg = new Image();
+headImg.src = 'head.png';
+
+const tailImg = new Image();
+tailImg.src = 'tail.png';
+
+const foodImg = new Image();
+foodImg.src = 'food.png';
+
+let assetsLoaded = 0;
+const totalAssets = 3;
+
+function loadAssets() {
+    assetsLoaded++;
+    if (assetsLoaded === totalAssets) {
+        highScoreDisplay.textContent = 'High Score: ' + highScore;
+        setupGame();
+    }
+}
+
+headImg.onload = loadAssets;
+tailImg.onload = loadAssets;
+foodImg.onload = loadAssets;
+
 // On-screen buttons
 const upBtn = document.getElementById('up-btn');
 const downBtn = document.getElementById('down-btn');
@@ -23,9 +48,6 @@ const leftBtn = document.getElementById('left-btn');
 const rightBtn = document.getElementById('right-btn');
 
 function setupGame() {
-    // Clear any existing game interval to prevent speed-up bugs
-    clearInterval(gameInterval);
-    
     gameOverScreen.style.display = 'none';
     canvas.style.display = 'block';
     
@@ -33,7 +55,7 @@ function setupGame() {
     canvas.width = canvasSize;
     canvas.height = canvasSize;
     gridSize = canvasSize / 20;
-
+    
     snake = [{ x: 10 * gridSize, y: 10 * gridSize }];
     dx = gridSize;
     dy = 0;
@@ -43,40 +65,66 @@ function setupGame() {
     generateFood();
     draw();
     
-    gameInterval = setInterval(update, 150); // The game loop
+    clearInterval(gameInterval);
+    gameInterval = setInterval(update, 150);
 }
 
-highScoreDisplay.textContent = 'High Score: ' + highScore;
-setupGame(); // Initial call to start the first game
-
 function generateFood() {
-    const minX = 0;
-    const maxX = canvas.width - gridSize;
-    const minY = 0;
-    const maxY = canvas.height - gridSize;
-
     food = {
-        x: Math.floor(Math.random() * (maxX - minX + 1) / gridSize) * gridSize,
-        y: Math.floor(Math.random() * (maxY - minY + 1) / gridSize) * gridSize
+        x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
+        y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
     };
 }
 
 function drawFood() {
-    ctx.fillStyle = 'red';
-    ctx.beginPath();
-    ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2 * 0.7, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.drawImage(foodImg, food.x, food.y, gridSize, gridSize);
+}
+
+function drawSnake() {
+    const head = snake[0];
+    const tail = snake[snake.length - 1];
+
+    snake.forEach((segment, index) => {
+        let currentImage;
+        let angle = 0;
+
+        // Head
+        if (index === 0) {
+            currentImage = headImg;
+            if (dx === gridSize) angle = 0;
+            if (dx === -gridSize) angle = Math.PI;
+            if (dy === -gridSize) angle = -Math.PI / 2;
+            if (dy === gridSize) angle = Math.PI / 2;
+        } 
+        // Tail
+        else if (index === snake.length - 1 && snake.length > 1) {
+            currentImage = tailImg;
+            const prevSegment = snake[index - 1];
+            if (segment.x < prevSegment.x) angle = 0;
+            if (segment.x > prevSegment.x) angle = Math.PI;
+            if (segment.y < prevSegment.y) angle = -Math.PI / 2;
+            if (segment.y > prevSegment.y) angle = Math.PI / 2;
+        }
+        // Body (simple square as requested)
+        else {
+            ctx.fillStyle = 'green';
+            ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
+            return;
+        }
+
+        // Draw rotated image
+        ctx.save();
+        ctx.translate(segment.x + gridSize / 2, segment.y + gridSize / 2);
+        ctx.rotate(angle);
+        ctx.drawImage(currentImage, -gridSize / 2, -gridSize / 2, gridSize, gridSize);
+        ctx.restore();
+    });
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     drawFood();
-    
-    ctx.fillStyle = 'lime';
-    snake.forEach(segment => {
-        ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
-    });
+    drawSnake();
 }
 
 function update() {
@@ -174,5 +222,5 @@ restartBtn.addEventListener('click', setupGame);
 window.addEventListener('resize', () => {
     clearInterval(gameInterval);
     setupGame();
+    gameInterval = setInterval(update, 150);
 });
-
