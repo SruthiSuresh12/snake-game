@@ -172,5 +172,5 @@ restartBtn.addEventListener('click', setupGame);
 window.addEventListener('resize', () => {
     clearInterval(gameInterval);
     setupGame();
-    gameInterval = setInterval(update, 150); // Adjusted speed here
+    gameInterval = setInterval(update, 250); // Adjusted speed here
 });
