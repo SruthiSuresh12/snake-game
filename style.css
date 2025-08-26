@@ -62,18 +62,22 @@ canvas {
     }
 }
 
-/* New Game Over Styling */
+/* Updated Game Over Styling */
 #gameOverScreen {
     display: none; /* Hide by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9); /* Opaque black overlay */
+    color: white;
     text-align: center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.7);
-    padding: 20px;
-    border-radius: 10px;
-    border: 2px solid white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
 }
 
 #gameOverScreen h2 {
@@ -94,32 +98,4 @@ canvas {
     color: white;
     border: none;
     border-radius: 5px;
-}
-
-.control-row {
-    display: flex;
-    justify-content: center;
-}
-
-.control-btn {
-    font-size: 2em;
-    padding: 10px 20px;
-    margin: 5px;
-    border: 2px solid #fff;
-    border-radius: 10px;
-    background-color: #555;
-    color: white;
-    cursor: pointer;
-    width: 80px;
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Show controls only on smaller screens (phones) */
-@media screen and (max-width: 767px) {
-    #controls {
-        display: block;
-    }
 }
