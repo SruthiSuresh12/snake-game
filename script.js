@@ -7,6 +7,7 @@ const finalScoreDisplay = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restartBtn');
 
 let gridSize;
+const imageSize = 1.2; // 20% bigger than the grid square
 let snake = [{ x: 10, y: 10 }];
 let food = {};
 let score = 0;
@@ -15,7 +16,7 @@ let dx = 0;
 let dy = 0;
 let changingDirection = false;
 let gameInterval;
-let gameSpeed = 150; // The game speed value
+let gameSpeed = 150;
 
 // Image assets
 const headImg = new Image();
@@ -67,7 +68,7 @@ function setupGame() {
     draw();
     
     clearInterval(gameInterval);
-    gameSpeed = 150; // Reset speed here
+    gameSpeed = 150;
     gameInterval = setInterval(update, gameSpeed);
 }
 
@@ -79,7 +80,9 @@ function generateFood() {
 }
 
 function drawFood() {
-    ctx.drawImage(foodImg, food.x, food.y, gridSize, gridSize);
+    const size = gridSize * imageSize;
+    const offset = (size - gridSize) / 2;
+    ctx.drawImage(foodImg, food.x - offset, food.y - offset, size, size);
 }
 
 function drawSnake() {
@@ -89,6 +92,8 @@ function drawSnake() {
     snake.forEach((segment, index) => {
         let currentImage;
         let angle = 0;
+        const size = gridSize * imageSize;
+        const offset = (size - gridSize) / 2;
 
         // Head
         if (index === 0) {
@@ -107,33 +112,10 @@ function drawSnake() {
             if (segment.y > prevSegment.y) angle = -Math.PI / 2;
             if (segment.y < prevSegment.y) angle = Math.PI / 2;
         }
-        // Body (custom styling)
+        // Body (full size, neon green square)
         else {
-            ctx.fillStyle = '#4CAF50'; // Old green
-            
-            // Check direction for squashed body
-            let rectWidth = gridSize;
-            let rectHeight = gridSize;
-            let xOffset = 0;
-            let yOffset = 0;
-
-            const prevSegment = snake[index - 1];
-            const nextSegment = snake[index + 1];
-
-            // Horizontal movement (draw a thinner vertical rectangle)
-            if (prevSegment.y === nextSegment.y) {
-                rectWidth = gridSize;
-                rectHeight = gridSize * 0.5;
-                yOffset = (gridSize - rectHeight) / 2;
-            }
-            // Vertical movement (draw a thinner horizontal rectangle)
-            else {
-                rectWidth = gridSize * 0.5;
-                rectHeight = gridSize;
-                xOffset = (gridSize - rectWidth) / 2;
-            }
-
-            ctx.fillRect(segment.x + xOffset, segment.y + yOffset, rectWidth, rectHeight);
+            ctx.fillStyle = '#39FF14'; // Neon Green
+            ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
             return;
         }
 
@@ -141,7 +123,7 @@ function drawSnake() {
         ctx.save();
         ctx.translate(segment.x + gridSize / 2, segment.y + gridSize / 2);
         ctx.rotate(angle);
-        ctx.drawImage(currentImage, -gridSize / 2, -gridSize / 2, gridSize, gridSize);
+        ctx.drawImage(currentImage, -size / 2, -size / 2, size, size);
         ctx.restore();
     });
 }
@@ -171,11 +153,8 @@ function update() {
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
     snake.unshift(head);
     
-    const distanceX = Math.abs(head.x - food.x);
-    const distanceY = Math.abs(head.y - food.y);
-    const minDistance = gridSize;
-
-    if (distanceX < minDistance && distanceY < minDistance) {
+    // Precise collision check
+    if (head.x === food.x && head.y === food.y) {
         score++;
         scoreDisplay.textContent = 'Score: ' + score;
         generateFood();
