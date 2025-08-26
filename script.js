@@ -41,7 +41,7 @@ function setupGame() {
     draw();
     
     clearInterval(gameInterval);
-    gameInterval = setInterval(update, 100);
+    gameInterval = setInterval(update, 150); // Adjusted speed here
 }
 
 highScoreDisplay.textContent = 'High Score: ' + highScore;
@@ -81,7 +81,7 @@ function update() {
     if (isGameOver()) {
         clearInterval(gameInterval);
         canvas.style.display = 'none';
-        gameOverScreen.style.display = 'block';
+        gameOverScreen.style.display = 'flex'; // Use flex to center the content
         finalScoreDisplay.textContent = 'Final Score: ' + score;
         
         if (score > highScore) {
@@ -96,10 +96,9 @@ function update() {
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
     snake.unshift(head);
     
-    // Radius-based collision detection
     const distanceX = Math.abs(head.x - food.x);
     const distanceY = Math.abs(head.y - food.y);
-    const minDistance = gridSize; // The food is "captured" when the head is within one grid space of the food.
+    const minDistance = gridSize;
 
     if (distanceX < minDistance && distanceY < minDistance) {
         score++;
@@ -167,11 +166,11 @@ upBtn.addEventListener('click', changeDirection);
 downBtn.addEventListener('click', changeDirection);
 leftBtn.addEventListener('click', changeDirection);
 rightBtn.addEventListener('click', changeDirection);
-restartBtn.addEventListener('click', setupGame); // Restart the game
+restartBtn.addEventListener('click', setupGame);
 
 // Handle window resizing
 window.addEventListener('resize', () => {
     clearInterval(gameInterval);
     setupGame();
-    gameInterval = setInterval(update, 100);
+    gameInterval = setInterval(update, 150); // Adjusted speed here
 });
