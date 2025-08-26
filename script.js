@@ -23,6 +23,9 @@ const leftBtn = document.getElementById('left-btn');
 const rightBtn = document.getElementById('right-btn');
 
 function setupGame() {
+    // Clear any existing game interval to prevent speed-up bugs
+    clearInterval(gameInterval);
+    
     gameOverScreen.style.display = 'none';
     canvas.style.display = 'block';
     
@@ -40,12 +43,11 @@ function setupGame() {
     generateFood();
     draw();
     
-    clearInterval(gameInterval);
-    gameInterval = setInterval(update, 150); // Adjusted speed here
+    gameInterval = setInterval(update, 150); // The game loop
 }
 
 highScoreDisplay.textContent = 'High Score: ' + highScore;
-setupGame();
+setupGame(); // Initial call to start the first game
 
 function generateFood() {
     const minX = 0;
@@ -81,7 +83,7 @@ function update() {
     if (isGameOver()) {
         clearInterval(gameInterval);
         canvas.style.display = 'none';
-        gameOverScreen.style.display = 'flex'; // Use flex to center the content
+        gameOverScreen.style.display = 'flex';
         finalScoreDisplay.textContent = 'Final Score: ' + score;
         
         if (score > highScore) {
@@ -172,5 +174,5 @@ restartBtn.addEventListener('click', setupGame);
 window.addEventListener('resize', () => {
     clearInterval(gameInterval);
     setupGame();
-    gameInterval = setInterval(update, 250); // Adjusted speed here
 });
+
