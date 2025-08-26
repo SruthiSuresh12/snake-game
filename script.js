@@ -52,7 +52,7 @@ function setupGame() {
     changingDirection = false;
 
     generateFood();
-    draw();
+    draw(); // Draw the initial state of the game
 
     clearInterval(gameInterval);
     gameSpeed = 150;
@@ -87,7 +87,7 @@ function drawSnake() {
     for (let i = 1; i < snake.length - 1; i++) {
         ctx.fillRect(snake[i].x, snake[i].y, gridSize, gridSize);
     }
-    
+
     // Draw the tail with rounded corners
     if (snake.length > 1) {
         ctx.fillStyle = '#81C784';
@@ -156,7 +156,7 @@ function update() {
 }
 
 function isGameOver() {
-    for (let i = 1; i < snake.length; i++) { // Changed i to 1 to avoid checking head against itself
+    for (let i = 1; i < snake.length; i++) {
         if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
     }
 
@@ -215,6 +215,7 @@ document.addEventListener('keydown', (event) => {
     if (keyPressed === 40) changeDirection('down');
 });
 
+// Added passive: false to prevent default touch actions like scrolling
 document.addEventListener('touchstart', (event) => {
     event.preventDefault();
     touchStartX = event.touches[0].clientX;
