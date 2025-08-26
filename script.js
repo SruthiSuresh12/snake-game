@@ -72,7 +72,6 @@ function drawGrid() {
 
     for (let row = 0; row < numRows; row++) {
         for (let col = 0; col < numCols; col++) {
-            // Check if the sum of the row and column indices is even or odd for the checkerboard pattern
             ctx.fillStyle = (row + col) % 2 === 0 ? darkColor : lightColor;
             ctx.fillRect(col * gridSize, row * gridSize, gridSize, gridSize);
         }
@@ -80,7 +79,6 @@ function drawGrid() {
 }
 
 function drawSnake() {
-    // Only draw the head if the snake has a body
     if (snake.length > 1) {
         // Draw the snake's body segments as squares
         ctx.fillStyle = '#eb4b5b';
@@ -88,11 +86,11 @@ function drawSnake() {
             ctx.fillRect(snake[i].x, snake[i].y, gridSize, gridSize);
         }
 
-        // Draw the snake's tail using an image
-        drawSegment(snake[snake.length - 1], getDirection(snake[snake.length - 2], snake[snake.length - 1]), 'tail');
-
-        // Draw the snake's head using an image
+        // Draw the snake's head
         drawSegment(snake[0], getDirection(snake[1], snake[0]), 'head');
+
+        // Draw the snake's tail
+        drawSegment(snake[snake.length - 1], getDirection(snake[snake.length - 2], snake[snake.length - 1]), 'tail');
 
     } else {
         // If the snake has only one segment, draw a circle head
@@ -112,23 +110,23 @@ function drawSegment(segment, direction, type) {
     ctx.translate(x + gridSize / 2, y + gridSize / 2);
 
     let angle = 0;
-    switch (direction) {
-        case 'up':
-            angle = -Math.PI / 2;
-            break;
-        case 'left':
-            angle = Math.PI;
-            break;
-        case 'down':
-            angle = Math.PI / 2;
-            break;
-        case 'right':
-        default:
-            angle = 0;
-            break;
+    if (type === 'tail') {
+        switch (direction) {
+            case 'up': angle = Math.PI / 2; break; // Tail should face down
+            case 'down': angle = -Math.PI / 2; break; // Tail should face up
+            case 'left': angle = 0; break; // Tail should face right
+            case 'right': angle = Math.PI; break; // Tail should face left
+        }
+    } else { // Head rotation
+        switch (direction) {
+            case 'up': angle = -Math.PI / 2; break;
+            case 'down': angle = Math.PI / 2; break;
+            case 'left': angle = Math.PI; break;
+            case 'right': angle = 0; break;
+        }
     }
-    ctx.rotate(angle);
 
+    ctx.rotate(angle);
     ctx.drawImage(image, -gridSize / 2, -gridSize / 2, gridSize, gridSize);
     ctx.restore();
 }
@@ -138,7 +136,7 @@ function getDirection(fromSegment, toSegment) {
     if (toSegment.y > fromSegment.y) return 'down';
     if (toSegment.x < fromSegment.x) return 'left';
     if (toSegment.x > fromSegment.x) return 'right';
-    return 'right'; // Default direction
+    return 'right';
 }
 
 function drawFood() {
@@ -166,7 +164,6 @@ function generateFood() {
         };
         onSnake = snake.some(segment => segment.x === newFood.x && segment.y === newFood.y);
     } while (onSnake);
-
     food = newFood;
 }
 
@@ -176,12 +173,10 @@ function update() {
         return;
     }
 
-    // Create the new snake head
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
     snake.unshift(head);
     changingDirection = false;
 
-    // Check if the snake ate the food
     const distanceX = Math.abs(head.x - food.x);
     const distanceY = Math.abs(head.y - food.y);
     const minDistance = gridSize;
@@ -192,19 +187,17 @@ function update() {
         scoreDisplay.textContent = 'Score: ' + score;
         generateFood();
     } else {
-        snake.pop(); // Remove the tail segment
+        snake.pop();
     }
 
     draw();
 }
 
 function isGameOver() {
-    // Check for collision with itself (start from the 4th segment to prevent immediate game over)
     for (let i = 4; i < snake.length; i++) {
         if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
     }
 
-    // Check for collision with walls
     const hitLeftWall = snake[0].x < 0;
     const hitRightWall = snake[0].x >= canvas.width;
     const hitTopWall = snake[0].y < 0;
@@ -262,20 +255,20 @@ document.addEventListener('keydown', (event) => {
     if (keyPressed === 40) changeDirection('down');
 });
 
-// Touch controls using continuous touch
+// Touch controls using touchend for swipe detection
 document.addEventListener('touchstart', (event) => {
-    event.preventDefault(); // Prevents page from scrolling
+    event.preventDefault();
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
 }, { passive: false });
 
-document.addEventListener('touchmove', (event) => {
-    event.preventDefault(); // Prevents page from scrolling
-    const touchMoveX = event.touches[0].clientX;
-    const touchMoveY = event.touches[0].clientY;
+document.addEventListener('touchend', (event) => {
+    event.preventDefault();
+    const touchEndX = event.changedTouches[0].clientX;
+    const touchEndY = event.changedTouches[0].clientY;
 
-    const diffX = touchMoveX - touchStartX;
-    const diffY = touchMoveY - touchStartY;
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
 
     if (Math.abs(diffX) > Math.abs(diffY)) {
         if (diffX > 0) changeDirection('right');
@@ -284,9 +277,6 @@ document.addEventListener('touchmove', (event) => {
         if (diffY > 0) changeDirection('down');
         else changeDirection('up');
     }
-
-    touchStartX = touchMoveX;
-    touchStartY = touchMoveY;
 }, { passive: false });
 
 restartBtn.addEventListener('click', setupGame);
