@@ -1,4 +1,4 @@
-Const canvas = document.getElementById('gameCanvas');
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 const highScoreDisplay = document.getElementById('highScore');
@@ -18,15 +18,19 @@ let gameInterval;
 let gameSpeed = 150;
 let changingDirection = false;
 
-// Assets
+// Sound Effects
 const eatSound = new Audio('eat.mp3');
 const gameOverSound = new Audio('gameOver.mp3');
-const foodImage = new Image();
-foodImage.src = 'food.png';
 
 // Touch control variables
 let touchStartX = 0;
 let touchStartY = 0;
+
+// Image assets for the snake
+const headImage = new Image();
+headImage.src = 'head.png';
+const tailImage = new Image();
+tailImage.src = 'tail.png';
 
 // --- Game Initialization ---
 function initializeGame() {
@@ -52,7 +56,7 @@ function setupGame() {
     changingDirection = false;
 
     generateFood();
-    draw(); // Draw the initial state of the game
+    draw();
 
     clearInterval(gameInterval);
     gameSpeed = 150;
@@ -68,6 +72,7 @@ function drawGrid() {
 
     for (let row = 0; row < numRows; row++) {
         for (let col = 0; col < numCols; col++) {
+            // Check if the sum of the row and column indices is even or odd for the checkerboard pattern
             ctx.fillStyle = (row + col) % 2 === 0 ? darkColor : lightColor;
             ctx.fillRect(col * gridSize, row * gridSize, gridSize, gridSize);
         }
@@ -75,40 +80,73 @@ function drawGrid() {
 }
 
 function drawSnake() {
-    // Draw the head with rounded corners
-    ctx.fillStyle = '#4CAF50';
-    ctx.beginPath();
-    ctx.roundRect(snake[0].x, snake[0].y, gridSize, gridSize, 5);
-    ctx.fill();
-    ctx.closePath();
-
-    // Draw the body segments as rectangles
-    ctx.fillStyle = '#66BB6A';
-    for (let i = 1; i < snake.length - 1; i++) {
-        ctx.fillRect(snake[i].x, snake[i].y, gridSize, gridSize);
-    }
-
-    // Draw the tail with rounded corners
+    // Only draw the head if the snake has a body
     if (snake.length > 1) {
-        ctx.fillStyle = '#81C784';
+        // Draw the snake's body segments as squares
+        ctx.fillStyle = '#eb4b5b';
+        for (let i = 1; i < snake.length - 1; i++) {
+            ctx.fillRect(snake[i].x, snake[i].y, gridSize, gridSize);
+        }
+
+        // Draw the snake's tail using an image
+        drawSegment(snake[snake.length - 1], getDirection(snake[snake.length - 2], snake[snake.length - 1]), 'tail');
+
+        // Draw the snake's head using an image
+        drawSegment(snake[0], getDirection(snake[1], snake[0]), 'head');
+
+    } else {
+        // If the snake has only one segment, draw a circle head
+        ctx.fillStyle = '#eb4b5b';
         ctx.beginPath();
-        ctx.roundRect(snake[snake.length - 1].x, snake[snake.length - 1].y, gridSize, gridSize, 5);
+        ctx.arc(snake[0].x + gridSize / 2, snake[0].y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
         ctx.fill();
         ctx.closePath();
     }
 }
 
-function drawFood() {
-    if (foodImage.complete) {
-        ctx.drawImage(foodImage, food.x, food.y, gridSize, gridSize);
-    } else {
-        // Fallback to a circle if the image hasn't loaded
-        ctx.fillStyle = '#ff6347';
-        ctx.beginPath();
-        ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.closePath();
+function drawSegment(segment, direction, type) {
+    const image = type === 'head' ? headImage : tailImage;
+    const { x, y } = segment;
+
+    ctx.save();
+    ctx.translate(x + gridSize / 2, y + gridSize / 2);
+
+    let angle = 0;
+    switch (direction) {
+        case 'up':
+            angle = -Math.PI / 2;
+            break;
+        case 'left':
+            angle = Math.PI;
+            break;
+        case 'down':
+            angle = Math.PI / 2;
+            break;
+        case 'right':
+        default:
+            angle = 0;
+            break;
     }
+    ctx.rotate(angle);
+
+    ctx.drawImage(image, -gridSize / 2, -gridSize / 2, gridSize, gridSize);
+    ctx.restore();
+}
+
+function getDirection(fromSegment, toSegment) {
+    if (toSegment.y < fromSegment.y) return 'up';
+    if (toSegment.y > fromSegment.y) return 'down';
+    if (toSegment.x < fromSegment.x) return 'left';
+    if (toSegment.x > fromSegment.x) return 'right';
+    return 'right'; // Default direction
+}
+
+function drawFood() {
+    ctx.fillStyle = '#ff6347';
+    ctx.beginPath();
+    ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.closePath();
 }
 
 function draw() {
@@ -119,17 +157,17 @@ function draw() {
 
 // --- Game Logic ---
 function generateFood() {
-    food = {
-        x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
-        y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
-    };
-    // Ensure food is not generated on the snake
-    for (const segment of snake) {
-        if (segment.x === food.x && segment.y === food.y) {
-            generateFood();
-            return;
-        }
-    }
+    let newFood;
+    let onSnake;
+    do {
+        newFood = {
+            x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
+            y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
+        };
+        onSnake = snake.some(segment => segment.x === newFood.x && segment.y === newFood.y);
+    } while (onSnake);
+
+    food = newFood;
 }
 
 function update() {
@@ -138,28 +176,35 @@ function update() {
         return;
     }
 
+    // Create the new snake head
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
     snake.unshift(head);
     changingDirection = false;
 
-    // Check for food collision with a more accurate comparison
-    if (head.x === food.x && head.y === food.y) {
+    // Check if the snake ate the food
+    const distanceX = Math.abs(head.x - food.x);
+    const distanceY = Math.abs(head.y - food.y);
+    const minDistance = gridSize;
+
+    if (distanceX < minDistance && distanceY < minDistance) {
         score++;
         eatSound.play();
         scoreDisplay.textContent = 'Score: ' + score;
         generateFood();
     } else {
-        snake.pop();
+        snake.pop(); // Remove the tail segment
     }
 
     draw();
 }
 
 function isGameOver() {
-    for (let i = 1; i < snake.length; i++) {
+    // Check for collision with itself (start from the 4th segment to prevent immediate game over)
+    for (let i = 4; i < snake.length; i++) {
         if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
     }
 
+    // Check for collision with walls
     const hitLeftWall = snake[0].x < 0;
     const hitRightWall = snake[0].x >= canvas.width;
     const hitTopWall = snake[0].y < 0;
@@ -207,6 +252,8 @@ function changeDirection(direction) {
 }
 
 // --- Event Listeners ---
+
+// Keyboard controls
 document.addEventListener('keydown', (event) => {
     const keyPressed = event.keyCode;
     if (keyPressed === 37) changeDirection('left');
@@ -215,15 +262,15 @@ document.addEventListener('keydown', (event) => {
     if (keyPressed === 40) changeDirection('down');
 });
 
-// Added passive: false to prevent default touch actions like scrolling
+// Touch controls using continuous touch
 document.addEventListener('touchstart', (event) => {
-    event.preventDefault();
+    event.preventDefault(); // Prevents page from scrolling
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
 }, { passive: false });
 
 document.addEventListener('touchmove', (event) => {
-    event.preventDefault();
+    event.preventDefault(); // Prevents page from scrolling
     const touchMoveX = event.touches[0].clientX;
     const touchMoveY = event.touches[0].clientY;
 
