@@ -17,8 +17,8 @@ let gameInterval;
 let gameSpeed = 150;
 
 // Sound Effects
-const eatSound = new Audio('eat.mp3'); // You'll need a file named eat.mp3
-const gameOverSound = new Audio('gameOver.mp3'); // You'll need a file named gameOver.mp3
+const eatSound = new Audio('eat.mp3'); 
+const gameOverSound = new Audio('gameOver.mp3'); 
 
 let touchStartX = 0;
 let touchStartY = 0;
@@ -31,7 +31,7 @@ function setupGame() {
     const canvasSize = canvas.offsetWidth;
     canvas.width = canvasSize;
     canvas.height = canvasSize;
-    gridSize = canvasSize / 20;
+    gridSize = canvasSize / 40; // Smaller snake
     
     snake = [{ x: 10 * gridSize, y: 10 * gridSize }];
     dx = gridSize;
@@ -55,44 +55,33 @@ function generateFood() {
 }
 
 function drawGrid() {
-    const lightColor = '#fcd988'; // Light shade for the squares
-    const darkColor = '#fce8a6'; // Dark shade for the squares
+    const lightColor = '#fcd988';
+    const darkColor = '#fce8a6';
     
     for (let x = 0; x < canvas.width; x += gridSize) {
         for (let y = 0; y < canvas.height; y += gridSize) {
-            ctx.fillStyle = (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 2 === 0 ? darkColor : lightColor;
+            ctx.fillStyle = (x / gridSize + y / gridSize) % 2 === 0 ? darkColor : lightColor;
             ctx.fillRect(x, y, gridSize, gridSize);
         }
     }
 }
 
 function drawSnake() {
-    ctx.fillStyle = '#4CAF50'; // Green color for the snake
-    ctx.beginPath();
-    
-    // Draw the head with a rounded cap
-    ctx.arc(snake[0].x + gridSize / 2, snake[0].y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
-    
-    // Draw the body segments
-    for (let i = 1; i < snake.length; i++) {
-        const prev = snake[i - 1];
-        const current = snake[i];
-        
-        ctx.lineTo(current.x + gridSize / 2, current.y + gridSize / 2);
-    }
-    
-    ctx.lineWidth = gridSize;
-    ctx.strokeStyle = '#4CAF50';
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    ctx.closePath();
+    ctx.fillStyle = '#4CAF50';
+    snake.forEach(segment => {
+        ctx.beginPath();
+        ctx.arc(segment.x + gridSize / 2, segment.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.closePath();
+    });
 }
 
 function drawFood() {
-    ctx.fillStyle = '#ff6347'; // A reddish color for food
+    ctx.fillStyle = '#ff6347';
     ctx.beginPath();
     ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.closePath();
 }
 
 function draw() {
@@ -148,22 +137,9 @@ function isGameOver() {
     return hitLeftWall || hitRightWall || hitTopWall || hitBottomWall;
 }
 
-function changeDirection(event) {
+function changeDirection(direction) {
     if (changingDirection) return;
     changingDirection = true;
-    
-    let direction;
-    if (event.type === 'keydown') {
-        const keyPressed = event.keyCode;
-        const LEFT_KEY = 37;
-        const UP_KEY = 38;
-        const RIGHT_KEY = 39;
-        const DOWN_KEY = 40;
-        if (keyPressed === LEFT_KEY) direction = 'left';
-        if (keyPressed === UP_KEY) direction = 'up';
-        if (keyPressed === RIGHT_KEY) direction = 'right';
-        if (keyPressed === DOWN_KEY) direction = 'down';
-    }
     
     const goingUp = dy === -gridSize;
     const goingDown = dy === gridSize;
@@ -185,6 +161,20 @@ function changeDirection(event) {
     }
 }
 
+// Keyboard controls
+document.addEventListener('keydown', (event) => {
+    const keyPressed = event.keyCode;
+    const LEFT_KEY = 37;
+    const UP_KEY = 38;
+    const RIGHT_KEY = 39;
+    const DOWN_KEY = 40;
+
+    if (keyPressed === LEFT_KEY) changeDirection('left');
+    if (keyPressed === UP_KEY) changeDirection('up');
+    if (keyPressed === RIGHT_KEY) changeDirection('right');
+    if (keyPressed === DOWN_KEY) changeDirection('down');
+});
+
 // Touch controls using swipe logic
 document.addEventListener('touchstart', (event) => {
     touchStartX = event.touches[0].clientX;
@@ -198,29 +188,14 @@ document.addEventListener('touchend', (event) => {
     const diffX = touchEndX - touchStartX;
     const diffY = touchEndY - touchStartY;
     
-    const goingUp = dy === -gridSize;
-    const goingDown = dy === gridSize;
-    const goingRight = dx === gridSize;
-    const goingLeft = dx === -gridSize;
-    
     if (Math.abs(diffX) > Math.abs(diffY)) {
         // Horizontal swipe
-        if (diffX > 0 && !goingLeft) {
-            dx = gridSize;
-            dy = 0;
-        } else if (diffX < 0 && !goingRight) {
-            dx = -gridSize;
-            dy = 0;
-        }
+        if (diffX > 0) changeDirection('right');
+        else changeDirection('left');
     } else {
         // Vertical swipe
-        if (diffY > 0 && !goingUp) {
-            dx = 0;
-            dy = gridSize;
-        } else if (diffY < 0 && !goingDown) {
-            dx = 0;
-            dy = -gridSize;
-        }
+        if (diffY > 0) changeDirection('down');
+        else changeDirection('up');
     }
 });
 
