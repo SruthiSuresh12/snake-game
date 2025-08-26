@@ -15,6 +15,7 @@ let dx = 0;
 let dy = 0;
 let changingDirection = false;
 let gameInterval;
+let gameSpeed = 150; // The game speed value
 
 // Image assets
 const headImg = new Image();
@@ -66,7 +67,8 @@ function setupGame() {
     draw();
     
     clearInterval(gameInterval);
-    gameInterval = setInterval(update, 150);
+    gameSpeed = 150; // Reset speed here
+    gameInterval = setInterval(update, gameSpeed);
 }
 
 function generateFood() {
@@ -100,15 +102,38 @@ function drawSnake() {
         else if (index === snake.length - 1 && snake.length > 1) {
             currentImage = tailImg;
             const prevSegment = snake[index - 1];
-            if (segment.x < prevSegment.x) angle = 0;
             if (segment.x > prevSegment.x) angle = Math.PI;
-            if (segment.y < prevSegment.y) angle = -Math.PI / 2;
-            if (segment.y > prevSegment.y) angle = Math.PI / 2;
+            if (segment.x < prevSegment.x) angle = 0;
+            if (segment.y > prevSegment.y) angle = -Math.PI / 2;
+            if (segment.y < prevSegment.y) angle = Math.PI / 2;
         }
-        // Body (simple square as requested)
+        // Body (custom styling)
         else {
-            ctx.fillStyle = 'green';
-            ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
+            ctx.fillStyle = '#4CAF50'; // Old green
+            
+            // Check direction for squashed body
+            let rectWidth = gridSize;
+            let rectHeight = gridSize;
+            let xOffset = 0;
+            let yOffset = 0;
+
+            const prevSegment = snake[index - 1];
+            const nextSegment = snake[index + 1];
+
+            // Horizontal movement (draw a thinner vertical rectangle)
+            if (prevSegment.y === nextSegment.y) {
+                rectWidth = gridSize;
+                rectHeight = gridSize * 0.5;
+                yOffset = (gridSize - rectHeight) / 2;
+            }
+            // Vertical movement (draw a thinner horizontal rectangle)
+            else {
+                rectWidth = gridSize * 0.5;
+                rectHeight = gridSize;
+                xOffset = (gridSize - rectWidth) / 2;
+            }
+
+            ctx.fillRect(segment.x + xOffset, segment.y + yOffset, rectWidth, rectHeight);
             return;
         }
 
@@ -222,5 +247,4 @@ restartBtn.addEventListener('click', setupGame);
 window.addEventListener('resize', () => {
     clearInterval(gameInterval);
     setupGame();
-    gameInterval = setInterval(update, 150);
 });
