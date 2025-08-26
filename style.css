@@ -18,9 +18,47 @@ h1 {
 canvas {
     border: 2px solid #fff;
     background-color: #111;
+    width: 80vw; /* Responsive width */
+    height: 80vw; /* Maintain a square aspect ratio */
+    max-width: 400px; /* Limit max size on larger screens */
+    max-height: 400px;
 }
 
 #score, #highScore {
     margin-top: 10px;
     font-size: 1.5em;
+}
+
+#controls {
+    display: none; /* Hidden by default */
+    margin-top: 20px;
+    user-select: none;
+}
+
+.control-row {
+    display: flex;
+    justify-content: center;
+}
+
+.control-btn {
+    font-size: 2em;
+    padding: 10px 20px;
+    margin: 5px;
+    border: 2px solid #fff;
+    border-radius: 10px;
+    background-color: #555;
+    color: white;
+    cursor: pointer;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Show controls only on smaller screens (phones) */
+@media screen and (max-width: 767px) {
+    #controls {
+        display: block;
+    }
 }
