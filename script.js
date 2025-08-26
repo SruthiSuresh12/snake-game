@@ -2,6 +2,9 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 const highScoreDisplay = document.getElementById('highScore');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const finalScoreDisplay = document.getElementById('finalScore');
+const restartBtn = document.getElementById('restartBtn');
 
 let gridSize;
 let snake = [{ x: 10, y: 10 }];
@@ -19,29 +22,40 @@ const downBtn = document.getElementById('down-btn');
 const leftBtn = document.getElementById('left-btn');
 const rightBtn = document.getElementById('right-btn');
 
-// Function to handle game setup and resizing
 function setupGame() {
+    gameOverScreen.style.display = 'none';
+    canvas.style.display = 'block';
+    
     const canvasSize = canvas.offsetWidth;
     canvas.width = canvasSize;
     canvas.height = canvasSize;
-    gridSize = canvasSize / 20; // 20 grid units
-    
-    // Reset snake to initial position with new grid size
+    gridSize = canvasSize / 20;
+
     snake = [{ x: 10 * gridSize, y: 10 * gridSize }];
     dx = gridSize;
     dy = 0;
+    score = 0;
+    scoreDisplay.textContent = 'Score: ' + score;
     
     generateFood();
     draw();
+    
+    clearInterval(gameInterval);
+    gameInterval = setInterval(update, 100);
 }
 
 highScoreDisplay.textContent = 'High Score: ' + highScore;
 setupGame();
 
 function generateFood() {
+    const minX = 0;
+    const maxX = canvas.width - gridSize;
+    const minY = 0;
+    const maxY = canvas.height - gridSize;
+
     food = {
-        x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
-        y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
+        x: Math.floor(Math.random() * (maxX - minX + 1) / gridSize) * gridSize,
+        y: Math.floor(Math.random() * (maxY - minY + 1) / gridSize) * gridSize
     };
 }
 
@@ -55,10 +69,8 @@ function drawFood() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw food
     drawFood();
     
-    // Draw snake
     ctx.fillStyle = 'lime';
     snake.forEach(segment => {
         ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
@@ -68,13 +80,14 @@ function draw() {
 function update() {
     if (isGameOver()) {
         clearInterval(gameInterval);
+        canvas.style.display = 'none';
+        gameOverScreen.style.display = 'block';
+        finalScoreDisplay.textContent = 'Final Score: ' + score;
+        
         if (score > highScore) {
             highScore = score;
             localStorage.setItem('snakeHighScore', highScore);
             highScoreDisplay.textContent = 'High Score: ' + highScore;
-            alert('New High Score! Your score was ' + score);
-        } else {
-            alert('Game Over! Your score was ' + score);
         }
         return;
     }
@@ -83,7 +96,12 @@ function update() {
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
     snake.unshift(head);
     
-    if (head.x === food.x && head.y === food.y) {
+    // Radius-based collision detection
+    const distanceX = Math.abs(head.x - food.x);
+    const distanceY = Math.abs(head.y - food.y);
+    const minDistance = gridSize; // The food is "captured" when the head is within one grid space of the food.
+
+    if (distanceX < minDistance && distanceY < minDistance) {
         score++;
         scoreDisplay.textContent = 'Score: ' + score;
         generateFood();
@@ -149,13 +167,11 @@ upBtn.addEventListener('click', changeDirection);
 downBtn.addEventListener('click', changeDirection);
 leftBtn.addEventListener('click', changeDirection);
 rightBtn.addEventListener('click', changeDirection);
-
-// Initial game start
-gameInterval = setInterval(update, 100);
+restartBtn.addEventListener('click', setupGame); // Restart the game
 
 // Handle window resizing
 window.addEventListener('resize', () => {
-    clearInterval(gameInterval); // Stop the game loop
-    setupGame(); // Re-initialize the game with the new canvas size
-    gameInterval = setInterval(update, 100); // Restart the game loop
+    clearInterval(gameInterval);
+    setupGame();
+    gameInterval = setInterval(update, 100);
 });
