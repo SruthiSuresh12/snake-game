@@ -1,4 +1,4 @@
-const canvas = document.getElementById('gameCanvas');
+Const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 const highScoreDisplay = document.getElementById('highScore');
@@ -75,20 +75,27 @@ function drawGrid() {
 }
 
 function drawSnake() {
-    ctx.lineWidth = gridSize; // Make the line as thick as a grid cell
-    ctx.lineCap = 'round'; // Gives the line rounded ends
-    ctx.strokeStyle = '#4CAF50';
-    
+    // Draw the head with rounded corners
+    ctx.fillStyle = '#4CAF50';
     ctx.beginPath();
-    // Move to the first segment
-    ctx.moveTo(snake[0].x + gridSize / 2, snake[0].y + gridSize / 2);
+    ctx.roundRect(snake[0].x, snake[0].y, gridSize, gridSize, 5);
+    ctx.fill();
+    ctx.closePath();
 
-    // Draw lines to the subsequent segments
-    for (let i = 1; i < snake.length; i++) {
-        ctx.lineTo(snake[i].x + gridSize / 2, snake[i].y + gridSize / 2);
+    // Draw the body segments as rectangles
+    ctx.fillStyle = '#66BB6A';
+    for (let i = 1; i < snake.length - 1; i++) {
+        ctx.fillRect(snake[i].x, snake[i].y, gridSize, gridSize);
     }
     
-    ctx.stroke();
+    // Draw the tail with rounded corners
+    if (snake.length > 1) {
+        ctx.fillStyle = '#81C784';
+        ctx.beginPath();
+        ctx.roundRect(snake[snake.length - 1].x, snake[snake.length - 1].y, gridSize, gridSize, 5);
+        ctx.fill();
+        ctx.closePath();
+    }
 }
 
 function drawFood() {
@@ -116,6 +123,13 @@ function generateFood() {
         x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
         y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
     };
+    // Ensure food is not generated on the snake
+    for (const segment of snake) {
+        if (segment.x === food.x && segment.y === food.y) {
+            generateFood();
+            return;
+        }
+    }
 }
 
 function update() {
@@ -128,11 +142,8 @@ function update() {
     snake.unshift(head);
     changingDirection = false;
 
-    const distanceX = Math.abs(head.x - food.x);
-    const distanceY = Math.abs(head.y - food.y);
-    const minDistance = gridSize;
-
-    if (distanceX < minDistance && distanceY < minDistance) {
+    // Check for food collision with a more accurate comparison
+    if (head.x === food.x && head.y === food.y) {
         score++;
         eatSound.play();
         scoreDisplay.textContent = 'Score: ' + score;
@@ -145,7 +156,7 @@ function update() {
 }
 
 function isGameOver() {
-    for (let i = 4; i < snake.length; i++) {
+    for (let i = 1; i < snake.length; i++) { // Changed i to 1 to avoid checking head against itself
         if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
     }
 
