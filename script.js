@@ -18,9 +18,11 @@ let gameInterval;
 let gameSpeed = 150;
 let changingDirection = false;
 
-// Sound Effects
+// Assets
 const eatSound = new Audio('eat.mp3');
 const gameOverSound = new Audio('gameOver.mp3');
+const foodImage = new Image();
+foodImage.src = 'food.png';
 
 // Touch control variables
 let touchStartX = 0;
@@ -66,7 +68,6 @@ function drawGrid() {
 
     for (let row = 0; row < numRows; row++) {
         for (let col = 0; col < numCols; col++) {
-            // Check if the sum of the row and column indices is even or odd for the checkerboard pattern
             ctx.fillStyle = (row + col) % 2 === 0 ? darkColor : lightColor;
             ctx.fillRect(col * gridSize, row * gridSize, gridSize, gridSize);
         }
@@ -74,21 +75,33 @@ function drawGrid() {
 }
 
 function drawSnake() {
-    ctx.fillStyle = '#4CAF50';
-    snake.forEach(segment => {
-        ctx.beginPath();
-        ctx.arc(segment.x + gridSize / 2, segment.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.closePath();
-    });
+    ctx.lineWidth = gridSize; // Make the line as thick as a grid cell
+    ctx.lineCap = 'round'; // Gives the line rounded ends
+    ctx.strokeStyle = '#4CAF50';
+    
+    ctx.beginPath();
+    // Move to the first segment
+    ctx.moveTo(snake[0].x + gridSize / 2, snake[0].y + gridSize / 2);
+
+    // Draw lines to the subsequent segments
+    for (let i = 1; i < snake.length; i++) {
+        ctx.lineTo(snake[i].x + gridSize / 2, snake[i].y + gridSize / 2);
+    }
+    
+    ctx.stroke();
 }
 
 function drawFood() {
-    ctx.fillStyle = '#ff6347';
-    ctx.beginPath();
-    ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.closePath();
+    if (foodImage.complete) {
+        ctx.drawImage(foodImage, food.x, food.y, gridSize, gridSize);
+    } else {
+        // Fallback to a circle if the image hasn't loaded
+        ctx.fillStyle = '#ff6347';
+        ctx.beginPath();
+        ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.closePath();
+    }
 }
 
 function draw() {
@@ -111,12 +124,10 @@ function update() {
         return;
     }
 
-    // Create the new snake head
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
     snake.unshift(head);
     changingDirection = false;
 
-    // Check if the snake ate the food
     const distanceX = Math.abs(head.x - food.x);
     const distanceY = Math.abs(head.y - food.y);
     const minDistance = gridSize;
@@ -127,19 +138,17 @@ function update() {
         scoreDisplay.textContent = 'Score: ' + score;
         generateFood();
     } else {
-        snake.pop(); // Remove the tail segment
+        snake.pop();
     }
 
     draw();
 }
 
 function isGameOver() {
-    // Check for collision with itself (start from the 4th segment to prevent immediate game over)
     for (let i = 4; i < snake.length; i++) {
         if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
     }
 
-    // Check for collision with walls
     const hitLeftWall = snake[0].x < 0;
     const hitRightWall = snake[0].x >= canvas.width;
     const hitTopWall = snake[0].y < 0;
@@ -187,8 +196,6 @@ function changeDirection(direction) {
 }
 
 // --- Event Listeners ---
-
-// Keyboard controls
 document.addEventListener('keydown', (event) => {
     const keyPressed = event.keyCode;
     if (keyPressed === 37) changeDirection('left');
@@ -197,15 +204,14 @@ document.addEventListener('keydown', (event) => {
     if (keyPressed === 40) changeDirection('down');
 });
 
-// Touch controls using continuous touch
 document.addEventListener('touchstart', (event) => {
-    event.preventDefault(); // Prevents page from scrolling
+    event.preventDefault();
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
 }, { passive: false });
 
 document.addEventListener('touchmove', (event) => {
-    event.preventDefault(); // Prevents page from scrolling
+    event.preventDefault();
     const touchMoveX = event.touches[0].clientX;
     const touchMoveY = event.touches[0].clientY;
 
