@@ -6,8 +6,9 @@ const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restartBtn');
 
+// Game state variables
 let gridSize;
-let snake = [{ x: 10, y: 10 }];
+let snake = [];
 let food = {};
 let score = 0;
 let highScore = localStorage.getItem('snakeHighScore') || 0;
@@ -15,29 +16,38 @@ let dx = 0;
 let dy = 0;
 let gameInterval;
 let gameSpeed = 150;
+let changingDirection = false;
 
 // Sound Effects
 const eatSound = new Audio('eat.mp3');
 const gameOverSound = new Audio('gameOver.mp3');
 
+// Touch control variables
 let touchStartX = 0;
 let touchStartY = 0;
-let changingDirection = false;
+
+// --- Game Initialization ---
+function initializeGame() {
+    const canvasSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    gridSize = canvasSize / 20;
+
+    highScoreDisplay.textContent = 'High Score: ' + highScore;
+    setupGame();
+}
 
 function setupGame() {
     gameOverScreen.classList.add('hidden');
     canvas.style.display = 'block';
 
-    const canvasSize = canvas.offsetWidth;
-    canvas.width = canvasSize;
-    canvas.height = canvasSize;
-    gridSize = canvasSize / 20; // Changed to a 20x20 grid
-
+    // Reset game state
     snake = [{ x: 10 * gridSize, y: 10 * gridSize }];
     dx = gridSize;
     dy = 0;
     score = 0;
     scoreDisplay.textContent = 'Score: ' + score;
+    changingDirection = false;
 
     generateFood();
     draw();
@@ -47,21 +57,18 @@ function setupGame() {
     gameInterval = setInterval(update, gameSpeed);
 }
 
-function generateFood() {
-    food = {
-        x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
-        y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
-    };
-}
-
+// --- Drawing Functions ---
 function drawGrid() {
     const lightColor = '#fcd988';
     const darkColor = '#fce8a6';
+    const numRows = canvas.height / gridSize;
+    const numCols = canvas.width / gridSize;
 
-    for (let x = 0; x < canvas.width; x += gridSize) {
-        for (let y = 0; y < canvas.height; y += gridSize) {
-            ctx.fillStyle = ((x / gridSize) + (y / gridSize)) % 2 === 0 ? darkColor : lightColor;
-            ctx.fillRect(x, y, gridSize, gridSize);
+    for (let row = 0; row < numRows; row++) {
+        for (let col = 0; col < numCols; col++) {
+            // Check if the sum of the row and column indices is even or odd for the checkerboard pattern
+            ctx.fillStyle = (row + col) % 2 === 0 ? darkColor : lightColor;
+            ctx.fillRect(col * gridSize, row * gridSize, gridSize, gridSize);
         }
     }
 }
@@ -90,26 +97,26 @@ function draw() {
     drawSnake();
 }
 
+// --- Game Logic ---
+function generateFood() {
+    food = {
+        x: Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize,
+        y: Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize
+    };
+}
+
 function update() {
     if (isGameOver()) {
-        clearInterval(gameInterval);
-        gameOverSound.play();
-        canvas.style.display = 'none';
-        gameOverScreen.classList.remove('hidden');
-        finalScoreDisplay.textContent = 'Final Score: ' + score;
-
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('snakeHighScore', highScore);
-            highScoreDisplay.textContent = 'High Score: ' + highScore;
-        }
+        endGame();
         return;
     }
 
-    changingDirection = false;
+    // Create the new snake head
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
     snake.unshift(head);
+    changingDirection = false;
 
+    // Check if the snake ate the food
     const distanceX = Math.abs(head.x - food.x);
     const distanceY = Math.abs(head.y - food.y);
     const minDistance = gridSize;
@@ -120,21 +127,39 @@ function update() {
         scoreDisplay.textContent = 'Score: ' + score;
         generateFood();
     } else {
-        snake.pop();
+        snake.pop(); // Remove the tail segment
     }
 
     draw();
 }
 
 function isGameOver() {
+    // Check for collision with itself (start from the 4th segment to prevent immediate game over)
     for (let i = 4; i < snake.length; i++) {
         if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
     }
+
+    // Check for collision with walls
     const hitLeftWall = snake[0].x < 0;
     const hitRightWall = snake[0].x >= canvas.width;
     const hitTopWall = snake[0].y < 0;
     const hitBottomWall = snake[0].y >= canvas.height;
+
     return hitLeftWall || hitRightWall || hitTopWall || hitBottomWall;
+}
+
+function endGame() {
+    clearInterval(gameInterval);
+    gameOverSound.play();
+    canvas.style.display = 'none';
+    gameOverScreen.classList.remove('hidden');
+    finalScoreDisplay.textContent = 'Final Score: ' + score;
+
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('snakeHighScore', highScore);
+        highScoreDisplay.textContent = 'High Score: ' + highScore;
+    }
 }
 
 function changeDirection(direction) {
@@ -161,22 +186,26 @@ function changeDirection(direction) {
     }
 }
 
+// --- Event Listeners ---
+
 // Keyboard controls
 document.addEventListener('keydown', (event) => {
     const keyPressed = event.keyCode;
-    const LEFT_KEY = 37;
-    const UP_KEY = 38;
-    const RIGHT_KEY = 39;
-    const DOWN_KEY = 40;
-
-    if (keyPressed === LEFT_KEY) changeDirection('left');
-    if (keyPressed === UP_KEY) changeDirection('up');
-    if (keyPressed === RIGHT_KEY) changeDirection('right');
-    if (keyPressed === DOWN_KEY) changeDirection('down');
+    if (keyPressed === 37) changeDirection('left');
+    if (keyPressed === 38) changeDirection('up');
+    if (keyPressed === 39) changeDirection('right');
+    if (keyPressed === 40) changeDirection('down');
 });
 
 // Touch controls using continuous touch
+document.addEventListener('touchstart', (event) => {
+    event.preventDefault(); // Prevents page from scrolling
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+}, { passive: false });
+
 document.addEventListener('touchmove', (event) => {
+    event.preventDefault(); // Prevents page from scrolling
     const touchMoveX = event.touches[0].clientX;
     const touchMoveY = event.touches[0].clientY;
 
@@ -184,31 +213,18 @@ document.addEventListener('touchmove', (event) => {
     const diffY = touchMoveY - touchStartY;
 
     if (Math.abs(diffX) > Math.abs(diffY)) {
-        // Horizontal movement
         if (diffX > 0) changeDirection('right');
         else changeDirection('left');
     } else {
-        // Vertical movement
         if (diffY > 0) changeDirection('down');
         else changeDirection('up');
     }
 
     touchStartX = touchMoveX;
     touchStartY = touchMoveY;
-});
-
-document.addEventListener('touchstart', (event) => {
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
-});
+}, { passive: false });
 
 restartBtn.addEventListener('click', setupGame);
 
-// Initial game setup and event listener for resizing
-highScoreDisplay.textContent = 'High Score: ' + highScore;
-setupGame();
-window.addEventListener('resize', () => {
-    clearInterval(gameInterval);
-    setupGame();
-});
-
+// Initial call to set up the game
+initializeGame();
