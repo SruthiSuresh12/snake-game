@@ -13,43 +13,19 @@ let score = 0;
 let highScore = localStorage.getItem('snakeHighScore') || 0;
 let dx = 0;
 let dy = 0;
-let changingDirection = false;
 let gameInterval;
 let gameSpeed = 150;
 
-// Image assets
-const headImg = new Image();
-headImg.src = 'head.png';
+// Sound Effects
+const eatSound = new Audio('eat.mp3'); // You'll need a file named eat.mp3
+const gameOverSound = new Audio('gameOver.mp3'); // You'll need a file named gameOver.mp3
 
-const tailImg = new Image();
-tailImg.src = 'tail.png';
-
-const foodImg = new Image();
-foodImg.src = 'food.png';
-
-let assetsLoaded = 0;
-const totalAssets = 3;
-
-function loadAssets() {
-    assetsLoaded++;
-    if (assetsLoaded === totalAssets) {
-        highScoreDisplay.textContent = 'High Score: ' + highScore;
-        setupGame();
-    }
-}
-
-headImg.onload = loadAssets;
-tailImg.onload = loadAssets;
-foodImg.onload = loadAssets;
-
-// On-screen buttons
-const upBtn = document.getElementById('up-btn');
-const downBtn = document.getElementById('down-btn');
-const leftBtn = document.getElementById('left-btn');
-const rightBtn = document.getElementById('right-btn');
+let touchStartX = 0;
+let touchStartY = 0;
+let changingDirection = false;
 
 function setupGame() {
-    gameOverScreen.style.display = 'none';
+    gameOverScreen.classList.add('hidden');
     canvas.style.display = 'block';
     
     const canvasSize = canvas.offsetWidth;
@@ -78,53 +54,49 @@ function generateFood() {
     };
 }
 
-function drawFood() {
-    ctx.drawImage(foodImg, food.x, food.y, gridSize, gridSize);
+function drawGrid() {
+    const lightColor = '#fcd988'; // Light shade for the squares
+    const darkColor = '#fce8a6'; // Dark shade for the squares
+    
+    for (let x = 0; x < canvas.width; x += gridSize) {
+        for (let y = 0; y < canvas.height; y += gridSize) {
+            ctx.fillStyle = (Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 2 === 0 ? darkColor : lightColor;
+            ctx.fillRect(x, y, gridSize, gridSize);
+        }
+    }
 }
 
 function drawSnake() {
-    const head = snake[0];
-    const tail = snake[snake.length - 1];
+    ctx.fillStyle = '#4CAF50'; // Green color for the snake
+    ctx.beginPath();
+    
+    // Draw the head with a rounded cap
+    ctx.arc(snake[0].x + gridSize / 2, snake[0].y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
+    
+    // Draw the body segments
+    for (let i = 1; i < snake.length; i++) {
+        const prev = snake[i - 1];
+        const current = snake[i];
+        
+        ctx.lineTo(current.x + gridSize / 2, current.y + gridSize / 2);
+    }
+    
+    ctx.lineWidth = gridSize;
+    ctx.strokeStyle = '#4CAF50';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.closePath();
+}
 
-    snake.forEach((segment, index) => {
-        let currentImage;
-        let angle = 0;
-
-        // Head
-        if (index === 0) {
-            currentImage = headImg;
-            if (dx === gridSize) angle = 0;
-            if (dx === -gridSize) angle = Math.PI;
-            if (dy === -gridSize) angle = -Math.PI / 2;
-            if (dy === gridSize) angle = Math.PI / 2;
-        } 
-        // Tail
-        else if (index === snake.length - 1 && snake.length > 1) {
-            currentImage = tailImg;
-            const prevSegment = snake[index - 1];
-            if (segment.x > prevSegment.x) angle = Math.PI;
-            if (segment.x < prevSegment.x) angle = 0;
-            if (segment.y > prevSegment.y) angle = -Math.PI / 2;
-            if (segment.y < prevSegment.y) angle = Math.PI / 2;
-        }
-        // Body (custom styling)
-        else {
-            ctx.fillStyle = '#68c431'; // Light green to match head
-            ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
-            return;
-        }
-
-        // Draw rotated image
-        ctx.save();
-        ctx.translate(segment.x + gridSize / 2, segment.y + gridSize / 2);
-        ctx.rotate(angle);
-        ctx.drawImage(currentImage, -gridSize / 2, -gridSize / 2, gridSize, gridSize);
-        ctx.restore();
-    });
+function drawFood() {
+    ctx.fillStyle = '#ff6347'; // A reddish color for food
+    ctx.beginPath();
+    ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
+    ctx.fill();
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGrid();
     drawFood();
     drawSnake();
 }
@@ -132,8 +104,9 @@ function draw() {
 function update() {
     if (isGameOver()) {
         clearInterval(gameInterval);
+        gameOverSound.play();
         canvas.style.display = 'none';
-        gameOverScreen.style.display = 'flex';
+        gameOverScreen.classList.remove('hidden');
         finalScoreDisplay.textContent = 'Final Score: ' + score;
         
         if (score > highScore) {
@@ -154,6 +127,7 @@ function update() {
 
     if (distanceX < minDistance && distanceY < minDistance) {
         score++;
+        eatSound.play();
         scoreDisplay.textContent = 'Score: ' + score;
         generateFood();
     } else {
@@ -177,10 +151,6 @@ function isGameOver() {
 function changeDirection(event) {
     if (changingDirection) return;
     changingDirection = true;
-    const goingUp = dy === -gridSize;
-    const goingDown = dy === gridSize;
-    const goingRight = dx === gridSize;
-    const goingLeft = dx === -gridSize;
     
     let direction;
     if (event.type === 'keydown') {
@@ -193,10 +163,13 @@ function changeDirection(event) {
         if (keyPressed === UP_KEY) direction = 'up';
         if (keyPressed === RIGHT_KEY) direction = 'right';
         if (keyPressed === DOWN_KEY) direction = 'down';
-    } else {
-        direction = event.target.id.split('-')[0];
     }
     
+    const goingUp = dy === -gridSize;
+    const goingDown = dy === gridSize;
+    const goingRight = dx === gridSize;
+    const goingLeft = dx === -gridSize;
+
     if (direction === 'left' && !goingRight) {
         dx = -gridSize;
         dy = 0;
@@ -212,16 +185,52 @@ function changeDirection(event) {
     }
 }
 
-// Event listeners for keyboard and touch controls
-document.addEventListener('keydown', changeDirection);
-upBtn.addEventListener('click', changeDirection);
-downBtn.addEventListener('click', changeDirection);
-leftBtn.addEventListener('click', changeDirection);
-rightBtn.addEventListener('click', changeDirection);
+// Touch controls using swipe logic
+document.addEventListener('touchstart', (event) => {
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+});
+
+document.addEventListener('touchend', (event) => {
+    const touchEndX = event.changedTouches[0].clientX;
+    const touchEndY = event.changedTouches[0].clientY;
+    
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+    
+    const goingUp = dy === -gridSize;
+    const goingDown = dy === gridSize;
+    const goingRight = dx === gridSize;
+    const goingLeft = dx === -gridSize;
+    
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        // Horizontal swipe
+        if (diffX > 0 && !goingLeft) {
+            dx = gridSize;
+            dy = 0;
+        } else if (diffX < 0 && !goingRight) {
+            dx = -gridSize;
+            dy = 0;
+        }
+    } else {
+        // Vertical swipe
+        if (diffY > 0 && !goingUp) {
+            dx = 0;
+            dy = gridSize;
+        } else if (diffY < 0 && !goingDown) {
+            dx = 0;
+            dy = -gridSize;
+        }
+    }
+});
+
 restartBtn.addEventListener('click', setupGame);
 
-// Handle window resizing
+// Initial game setup and event listener for resizing
+highScoreDisplay.textContent = 'High Score: ' + highScore;
+setupGame();
 window.addEventListener('resize', () => {
     clearInterval(gameInterval);
     setupGame();
 });
+
