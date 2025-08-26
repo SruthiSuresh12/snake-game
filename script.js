@@ -140,7 +140,7 @@ function getDirection(fromSegment, toSegment) {
 }
 
 function drawFood() {
-    ctx.fillStyle = '#4CAF50'; // Green food
+    ctx.fillStyle = '#ff6347';
     ctx.beginPath();
     ctx.arc(food.x + gridSize / 2, food.y + gridSize / 2, gridSize / 2, 0, Math.PI * 2);
     ctx.fill();
@@ -177,13 +177,11 @@ function update() {
     snake.unshift(head);
     changingDirection = false;
 
-    // Use a precise but forgiving grid-based collision check
-    const headGridX = Math.floor(head.x / gridSize);
-    const headGridY = Math.floor(head.y / gridSize);
-    const foodGridX = Math.floor(food.x / gridSize);
-    const foodGridY = Math.floor(food.y / gridSize);
+    const distanceX = Math.abs(head.x - food.x);
+    const distanceY = Math.abs(head.y - food.y);
+    const minDistance = gridSize;
 
-    if (headGridX === foodGridX && headGridY === foodGridY) {
+    if (distanceX < minDistance && distanceY < minDistance) {
         score++;
         eatSound.play();
         scoreDisplay.textContent = 'Score: ' + score;
@@ -257,13 +255,14 @@ document.addEventListener('keydown', (event) => {
     if (keyPressed === 40) changeDirection('down');
 });
 
-// Touch controls anywhere on the screen
-document.addEventListener('touchstart', (event) => {
+// Touch controls for the canvas only
+canvas.addEventListener('touchstart', (event) => {
+    event.preventDefault(); // Prevents page from scrolling
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
 }, { passive: false });
 
-document.addEventListener('touchend', (event) => {
+canvas.addEventListener('touchend', (event) => {
     const touchEndX = event.changedTouches[0].clientX;
     const touchEndY = event.changedTouches[0].clientY;
 
@@ -279,6 +278,7 @@ document.addEventListener('touchend', (event) => {
     }
 }, { passive: false });
 
+// Restart button with a standard click listener
 restartBtn.addEventListener('click', setupGame);
 
 // Initial call to set up the game
